@@ -1,0 +1,273 @@
+---
+title: "Project 3 Modeling"
+author: "Susan Hajmohammad"
+format: html
+---
+
+## Introduction: 
+
+After doing an exploratory data analysis on four variables in relation to diabetic outcomes, I found I was most interested to see how Sex, Income and Education performed as predictors of Diabetes diagnosis.  These were the four variables that, at a glance, showed possibly some effect of amount of diabetes. I also find it interesting that these predictors are not comorbidities, they are rather biological (sex) or socio-economic (income and education) categories that people fall into.  This means that without having extra medical measurements done, providers could be aware of how the risk differs between patients, and perhaps patients would consent to early screenings, etc.  Let's see how good these variables are at predicting a diabetic diagnosis!  
+
+### Libraries: 
+
+```{r}
+#| warning: FALSE
+#| message: FALSE
+
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+library(tidymodels)
+library(tree)
+library(dplyr)
+library(ranger)
+```
+### Data
+
+```{r}
+#read in diabetes data from folder
+diabetes_data <- read_csv("diabetes_data.csv")
+
+#now for chosen variables change each to factor and give meaningful labels for the levels
+diabetes_data_reduced <- read_csv("diabetes_data.csv")%>% 
+  mutate(Diabetes_binary = factor(Diabetes_binary, levels= c(0,1), labels=c("No Diabetes", "Diabetes")),
+         Sex = factor(Sex, levels= c(0,1), labels = c("Female", "Male")), 
+         # info sheet says 5 year increments
+         Age = factor(Age, levels = c(1,2,3,4,5,6,7,8,9,10,11,12,13), labels = c("18to24", "25to29", "30to34", "35to39", "40to44", "45to49", "50to54", "55to59", "60to64", "65to69", "70to74", "75to79", "80plus")),
+         Education= factor(Education, levels= c(1,2,3,4,5,6), labels=c("Never attended or only kindergarten","Elementary","Some high school", "High school graduate","Some college or technical school","College graduate")), 
+         Income = factor(Income, levels = c(1,2,3,4,5,6,7,8), labels = c("< $10,000","< $15,000","< $20,000","< $25,000", "< $35,000","< $50,000","< $75,000","$75,000+")))%>%
+  #select only relevant variables to work with smaller data set
+  select(Diabetes_binary, Age, Sex, Education, Income)
+```
+
+
+### Data Split: 
+
+```{r}
+#split data into testing and training set with prop 70/30:
+set.seed(415)
+diab_split <- initial_split(diabetes_data_reduced, prop = 0.7)
+
+test <- testing(diab_split)
+  
+train <- training(diab_split)
+
+```
+
+## Logistic Regression Models: 
+
+A logistic regression model is ___.
+
+### Recipes for LR models: 
+
+```{r}
+LR1_rec <- recipe(Diabetes_binary ~ Sex+ Income+ Education, data = train)%>%
+  step_dummy(all_nominal_predictors())
+
+LR2_rec  <- recipe(Diabetes_binary ~ Sex + Income, data = train) %>%
+  step_dummy(all_nominal_predictors())
+
+LR3_rec <- recipe(Diabetes_binary ~ Income + Education, data = train) %>%
+  step_dummy(all_nominal_predictors())
+
+```
+
+### Model specs: 
+
+```{r}
+#logistic regression model specs: 
+
+LR_spec <- logistic_reg() %>%
+  set_engine("glm")
+
+```
+
+### Workflows: 
+
+```{r}
+LR1_wkf <- workflow() %>%
+ add_recipe(LR1_rec) %>%
+ add_model(LR_spec)
+LR2_wkf <- workflow() %>%
+ add_recipe(LR2_rec) %>%
+ add_model(LR_spec)
+LR3_wkf <- workflow() %>%
+ add_recipe(LR3_rec) %>%
+ add_model(LR_spec)
+```
+
+
+### CV 5-fold 
+
+```{r}
+diab_cv_folds <- vfold_cv(train, v= 5)
+```
+
+### Fit to our CV folds: 
+
+```{r}
+LR1_fit <- LR1_wkf %>%
+ fit_resamples(diab_cv_folds, metrics = metric_set(accuracy, mn_log_loss))
+LR2_fit <- LR2_wkf %>%
+ fit_resamples(diab_cv_folds, metrics = metric_set(accuracy, mn_log_loss))
+LR3_fit <- LR3_wkf %>%
+ fit_resamples(diab_cv_folds, metrics = metric_set(accuracy, mn_log_loss))
+
+```
+
+### Collect metrics: 
+
+```{r}
+rbind(LR1_fit %>% collect_metrics(),
+ LR2_fit %>% collect_metrics(),
+ LR3_fit %>% collect_metrics()) %>%
+ mutate(Model = c("Model1", "Model1", "Model2", "Model2", "Model3", "Model3")) %>%
+ select(Model, everything())
+```
+
+The best model is model 1 because it is showing the lowest log loss and also has a smaller standard error.  It appears all of the models have similar accuracy so that didn't help in the selection process. 
+
+### Best model test on test set: 
+
+```{r}
+final_LRmodel<- LR1_wkf |>
+ last_fit(diab_split, metrics = metric_set(accuracy, mn_log_loss)) |>
+ collect_metrics()
+
+final_LRmodel
+```
+
+We got our best model, model 1, from the LR models and tested it on the test set.  On the test set our final LR model scored about an 86% accuracy and a log loss of 0.387. 
+
+In summary, the mean CV log-loss was 0.387, 0.389 and 0.389 for models 1,2, and 3 respectively.  This means the best model at predicting diabetes outcomes with new data was model 1 which included the Sex, Education and Income predictors.  We will keep this model and keep these variables in as predictors! 
+
+
+## Classification Tree: 
+
+```{r}
+#tree recipe 
+tree_rec <- recipe(Diabetes_binary ~ Sex + Income + Education, data = train) %>%
+  step_dummy(all_nominal_predictors())
+
+#model spec
+tree_mod <- decision_tree(
+  cost_complexity = tune(), 
+  min_n = 20) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+#tree workflow
+tree_wkf <- workflow() %>%
+  add_recipe(tree_rec) %>% 
+  add_model(tree_mod)
+
+# tree grid
+cp_grid <- grid_regular(
+  cost_complexity(),
+  levels = 10)
+
+# tune grid with log‑loss as the metric
+temp <- tune_grid(
+  tree_wkf,
+  resamples = diab_cv_folds,
+  grid      = cp_grid,
+  metrics   = metric_set(mn_log_loss))
+
+# get best tree, slice top value
+
+best_tree <- temp %>%
+  collect_metrics() %>%
+  filter(.metric == "mn_log_loss") %>%
+  arrange(mean) %>%
+  slice(1)
+#show best tree
+best_tree
+
+#finalize workflow
+final_tree_wkf <- finalize_workflow(tree_wkf, best_tree)
+
+#fit on full training set and evaluate on test set
+tree_last <- last_fit(
+  final_tree_wkf,
+  diab_split,
+  metrics = metric_set(accuracy, mn_log_loss))
+
+tree_last %>% collect_metrics()
+
+```
+With these results, it looks our accuracy remains similar to our best LR model; however, the log-loss is higher (0.4033) than the best LR model.  We would not choose this model over the LR model 1 as it would give more confident predictions. 
+
+
+## Random Forest
+
+```{r}
+#random forest spec
+rf_spec <- rand_forest(mtry = tune(), trees = 10) %>%
+ set_engine("ranger") %>%
+ set_mode("classification")
+
+#RF workflow 
+
+rf_wkf <- workflow() %>%
+ add_recipe(LR3_rec) %>%
+ add_model(rf_spec)
+ 
+
+#mtry grid from 1 to 3 because we have 3 predictors
+rf_grid <- grid_regular(
+  mtry(range = c(1, 3)), 
+  levels = 7)
+
+
+# fit to CV folds
+
+rf_fit <- rf_wkf %>%
+ tune_grid(resamples = diab_cv_folds,
+ grid = rf_grid,
+ metrics = metric_set(accuracy, mn_log_loss))
+
+#look at log loss and sort
+
+rf_fit %>%
+ collect_metrics() %>%
+ filter(.metric == "mn_log_loss") %>%
+ arrange(mean)
+
+#get best tuning parameter
+rf_best_params <- select_best(rf_fit, metric = "mn_log_loss")
+rf_best_params
+
+#refit on whole traning set and test on testing set 
+rf_final_wkf <- rf_wkf %>%
+ finalize_workflow(rf_best_params)
+
+rf_final_fit <- rf_final_wkf %>%
+  last_fit(diab_split, metrics = metric_set(accuracy, mn_log_loss))
+
+```
+
+
+## Final Model Selection 
+
+```{r}
+
+final_LRmodel
+
+tree_last %>% collect_metrics()
+
+rf_final_fit %>% collect_metrics()
+
+```
+
+
+```{r}
+#refit model without metrics for API
+final_fit_result <- LR1_wkf |>
+  last_fit(diab_split, metrics = metric_set(accuracy, mn_log_loss))
+
+#extract workflow and save rds
+fitted_workflow <- extract_workflow(final_fit_result)
+saveRDS(fitted_workflow, "logRegFit_1.rds")
+
+```
+
