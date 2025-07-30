@@ -3,17 +3,13 @@ title: "Project 3 EDA"
 author: "Susan Hajmohammad"
 format: html
 ---
-  
-Introduction section
-You should have an introduction section that
-• briefly describes the data and the variables you have to work with.
-• describes the purpose of your EDA and ultimate goal of modeling.
+
 
 ## Introduction: 
 
-Diabetes is a chronic illness that affects more than 36 million Americans and many more people world-wide.  Diabetes is a condition where the body’s cells don't respond to insulin properly, which leads to high blood sugar levels. It is currently understood to be irreversible and can result in a number of life altering comorbidities.  Studies shows that most cases of type 2 diabetes can be prevented through lifestyle changes.  As such, it is important to explore how certain health predictors are at predicting an outcome of diabetes because that would be a useful tool to predicting patient outcomes and guiding lifestyle interventions.  
+Diabetes is a chronic illness that affects more than 36 million Americans and many more people world-wide.  Diabetes is a condition where the body’s cells don't respond to insulin properly, which leads to high blood sugar levels. It is currently understood to be irreversible and can result in a number of life altering comorbidities.  Studies shows that most cases of type 2 diabetes can be prevented through lifestyle changes.  As such, it is important to explore how certain indicators can be used to predict an outcome of diabetes, as that would be a useful tool to predicting patient outcomes and guiding lifestyle interventions.  
 
-With a lot of research already having been done on this topic, certain health measurements are more obviously correlated with outcomes of diabetes (BMI, cholesterol, eating habits); so, for this EDA I wanted to explore some less obvious predictors of diabetes.  I will be looking at Age, Sex, Education level and Income level as predictors of Diabetes diagnosis.  
+With a lot of research already done on this topic, certain health measurements are more obviously correlated with outcomes of diabetes (BMI, cholesterol, eating habits); so, for this EDA I wanted to explore some less obvious predictors of diabetes.  I will be looking at Age, Sex, Education level and Income level as predictors of Diabetes diagnosis.  
 
 
 ## Libraries: 
@@ -60,20 +56,24 @@ diabetes_data_reduced <- read_csv("diabetes_data.csv")%>%
 #age 
 
 a <- ggplot(diabetes_data_reduced, aes(x=Age))
-a + geom_bar(fill = "hotpink") + scale_y_continuous(labels = comma)
+a + geom_bar(fill = "hotpink") + scale_y_continuous(labels = comma) + labs(title = "Distribution of Age Groups", x = "Age Group", y = "Count") + theme_minimal()
 
 #sex
 
 s <- ggplot(diabetes_data_reduced, aes(x=Sex))
-s+ geom_bar(fill = "hotpink") + scale_y_continuous(labels = comma)
+s+ geom_bar(fill = "hotpink") + scale_y_continuous(labels = comma) +
+  labs(title = "Distribution of Sexes", x = "Sex", y = "Count") + theme_minimal()
 
 #Education
 e <- ggplot(diabetes_data_reduced, aes(x=Education))
-e+ geom_bar(fill = "hotpink") 
+e+ geom_bar(fill = "hotpink") + labs(title = "Distribution of Education Levels", x = "Education Level", y = "Count") +
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 #Income
 i <- ggplot(diabetes_data_reduced, aes(x=Income))
-i+ geom_bar(fill = "hotpink") 
+i+ geom_bar(fill = "hotpink") +labs(title = "Distribution of Incomes", x = "Income Group", y = "Count") +
+  theme_minimal()
 
 
 
@@ -81,6 +81,8 @@ i+ geom_bar(fill = "hotpink")
 
 ### Numeric summaries: 
 ```{r}
+#| warning: FALSE
+#| message: FALSE
 #age table 
 age_sum <- diabetes_data_reduced %>%
   count(Age) %>%
@@ -125,22 +127,41 @@ Filled bar plots of variable categories vs. Diabetes outcome:
 
 #age vs. diabetes
 ggplot(diabetes_data_reduced, aes(x = Age, fill = Diabetes_binary)) +
-  geom_bar(stat = "count")
+  geom_bar(stat = "count")  +
+  labs(
+    title = "Diabetes Vs. Age",
+    x = "Age Group",
+    y = "Number of Patients",
+    fill = "Diabetes Outcome") + theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 #sex vs. diabetes
 
 ggplot(diabetes_data_reduced, aes(x = Sex, fill = Diabetes_binary)) +
-  geom_bar(stat = "count") + scale_y_continuous(labels = comma)
+  geom_bar(stat = "count") + scale_y_continuous(labels = comma) +
+  labs(
+    title = "Diabetes Vs. Sex",
+    x = "Sex",
+    y = "Number of Patients",
+    fill = "Diabetes Outcome") + theme_minimal()
 
 #education vs. diabetes
 
-ggplot(diabetes_data_reduced, aes(x = Education, fill = Diabetes_binary)) +
-  geom_bar(stat = "count")
+ggplot(diabetes_data_reduced, aes(x = Education, fill = Diabetes_binary)) + geom_bar(stat = "count") + labs(
+    title = "Diabetes Vs. Education",
+    x = "Education Level",
+    y = "Number of Patients",
+    fill = "Diabetes Outcome") + theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 #income vs. diabetes
 
 ggplot(diabetes_data_reduced, aes(x = Income, fill = Diabetes_binary)) +
-  geom_bar(stat = "count")
+  geom_bar(stat = "count") +labs(
+    title = "Diabetes Vs. Income",
+    x = "Income Level",
+    y = "Number of Patients",
+    fill = "Diabetes Outcome") + theme_minimal()
 
 
 
@@ -148,6 +169,9 @@ ggplot(diabetes_data_reduced, aes(x = Income, fill = Diabetes_binary)) +
 
 ### Bivariate Numerical Summaries:
 ```{r}
+#| warning: FALSE
+#| message: FALSE
+
 #age vs. diabetes
 age_v_diab <- diabetes_data_reduced %>% 
   count(Age, Diabetes_binary) %>%

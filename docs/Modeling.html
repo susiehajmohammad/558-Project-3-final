@@ -142,7 +142,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="introduction" class="level2">
 <h2 class="anchored" data-anchor-id="introduction">Introduction:</h2>
-<p>After doing an exploratory data analysis on four variables in relation to diabetic outcomes, I found I was most interested to see how Sex, Income and Education performed as predictors of Diabetes diagnosis. These were the four variables that, at a glance, showed possibly some effect of amount of diabetes. I also find it interesting that these predictors are not comorbidities, they are rather biological (sex) or socio-economic (income and education) categories that people fall into. This means that without having extra medical measurements done, providers could be aware of how the risk differs between patients, and perhaps patients would consent to early screenings, etc. Let’s see how good these variables are at predicting a diabetic diagnosis!</p>
+<p>After doing an exploratory data analysis on four variables in relation to diabetic outcomes, I found I was most interested to see how Sex, Income and Education performed as predictors of Diabetes diagnosis. These were the four variables that, at a glance, showed possibly some effect on amount of diabetes. I also find it interesting that these predictors are not comorbidities. Rather, they are biological (sex) or socio-economic (income and education) categories that people fall into. This means that without having extra medical measurements done, providers could be aware of how the risk differs between patients, and perhaps patients would consent to early screenings, etc. Let’s see how good these variables are at predicting a diabetic diagnosis!</p>
 <section id="libraries" class="level3">
 <h3 class="anchored" data-anchor-id="libraries">Libraries:</h3>
 <div class="cell">
@@ -205,7 +205,7 @@ dbl (22): Diabetes_binary, HighBP, HighChol, CholCheck, BMI, Smoker, Stroke,...
 </section>
 <section id="logistic-regression-models" class="level2">
 <h2 class="anchored" data-anchor-id="logistic-regression-models">Logistic Regression Models:</h2>
-<p>A logistic regression model is ___.</p>
+<p>A logistic regression model is a model we use when our response variable is binary. It uses the predictor variables to estimate the probability of the event occuring (in this case the outcome of diabetes). This model works with our data because our response variable is binary in this case (diabetes, or no diabetes) and we’re using sex, income and education as predictors!</p>
 <section id="recipes-for-lr-models" class="level3">
 <h3 class="anchored" data-anchor-id="recipes-for-lr-models">Recipes for LR models:</h3>
 <div class="cell">
@@ -303,6 +303,7 @@ dbl (22): Diabetes_binary, HighBP, HighChol, CholCheck, BMI, Smoker, Stroke,...
 </section>
 <section id="classification-tree" class="level2">
 <h2 class="anchored" data-anchor-id="classification-tree">Classification Tree:</h2>
+<p>A classification tree is like a decision workflow that starts at a root predictor and where each node depending on the value of that predictor, splits into two sub-nodes. Starting with certain given values of predictors (sex, income, education) and following the tree you end up with a predicted outcome (in this case diabetes). Sometimes we try to use classification trees because they can easy to interpret and can pick up on interactions between the predictors! We will see if this is a better model than our LR model 1 with sex, income and education as predictors!</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">#tree recipe </span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>tree_rec <span class="ot">&lt;-</span> <span class="fu">recipe</span>(Diabetes_binary <span class="sc">~</span> Sex <span class="sc">+</span> Income <span class="sc">+</span> Education, <span class="at">data =</span> train) <span class="sc">%&gt;%</span></span>
@@ -365,10 +366,11 @@ dbl (22): Diabetes_binary, HighBP, HighChol, CholCheck, BMI, Smoker, Stroke,...
 2 mn_log_loss binary         0.403 Preprocessor1_Model1</code></pre>
 </div>
 </div>
-<p>With these results, it looks our accuracy remains similar to our best LR model; however, the log-loss is higher (0.4033) than the best LR model. We would not choose this model over the LR model 1 as it would give more confident predictions.</p>
+<p>With these results, it looks our accuracy remains similar to our best LR model; however, the log-loss is higher (0.4033) than the best LR model. We would not choose this model over the LR model 1 because the LR model would still perform better.</p>
 </section>
 <section id="random-forest" class="level2">
 <h2 class="anchored" data-anchor-id="random-forest">Random Forest</h2>
+<p>A random forest uses the same concept as a classification tree except it’s a method where many classification trees are made by using random subsets of the data and the predictors, then it aggregates the predictions. Random forest will usually have better accuracy because of the repetition, whereas a single classification tree is more likely to be less accurate and over-fit. Here we will compare our random forest results to that of the LR model 1 to see if it’s better at predicting the outcomes of diabetes, using sex, income and education as predictors!</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">#random forest spec</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>rf_spec <span class="ot">&lt;-</span> <span class="fu">rand_forest</span>(<span class="at">mtry =</span> <span class="fu">tune</span>(), <span class="at">trees =</span> <span class="dv">10</span>) <span class="sc">%&gt;%</span></span>
@@ -454,6 +456,7 @@ dbl (22): Diabetes_binary, HighBP, HighChol, CholCheck, BMI, Smoker, Stroke,...
 2 mn_log_loss binary         0.389 Preprocessor1_Model1</code></pre>
 </div>
 </div>
+<p>Looking at the accuracy and log-loss of the Random Forest model compared to the LR Model 1, the LR Model 1 still has a similar accuracy and lower log-loss, so we will use this model as the best predictor.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co">#refit model without metrics for API</span></span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>final_fit_result <span class="ot">&lt;-</span> LR1_wkf <span class="sc">|&gt;</span></span>

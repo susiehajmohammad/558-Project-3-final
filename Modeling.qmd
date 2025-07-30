@@ -6,7 +6,7 @@ format: html
 
 ## Introduction: 
 
-After doing an exploratory data analysis on four variables in relation to diabetic outcomes, I found I was most interested to see how Sex, Income and Education performed as predictors of Diabetes diagnosis.  These were the four variables that, at a glance, showed possibly some effect of amount of diabetes. I also find it interesting that these predictors are not comorbidities, they are rather biological (sex) or socio-economic (income and education) categories that people fall into.  This means that without having extra medical measurements done, providers could be aware of how the risk differs between patients, and perhaps patients would consent to early screenings, etc.  Let's see how good these variables are at predicting a diabetic diagnosis!  
+After doing an exploratory data analysis on four variables in relation to diabetic outcomes, I found I was most interested to see how Sex, Income and Education performed as predictors of Diabetes diagnosis.  These were the four variables that, at a glance, showed possibly some effect on amount of diabetes. I also find it interesting that these predictors are not comorbidities. Rather, they are biological (sex) or socio-economic (income and education) categories that people fall into.  This means that without having extra medical measurements done, providers could be aware of how the risk differs between patients, and perhaps patients would consent to early screenings, etc.  Let's see how good these variables are at predicting a diabetic diagnosis!  
 
 ### Libraries: 
 
@@ -56,7 +56,7 @@ train <- training(diab_split)
 
 ## Logistic Regression Models: 
 
-A logistic regression model is ___.
+A logistic regression model is a model we use when our response variable is binary.  It uses the predictor variables to estimate the probability of the event occuring (in this case the outcome of diabetes).  This model works with our data because our response variable is binary in this case (diabetes, or no diabetes) and we're using sex, income and education as predictors! 
 
 ### Recipes for LR models: 
 
@@ -144,6 +144,8 @@ In summary, the mean CV log-loss was 0.387, 0.389 and 0.389 for models 1,2, and 
 
 ## Classification Tree: 
 
+A classification tree is like a decision workflow that starts at a root predictor and where each node depending on the value of that predictor, splits into two sub-nodes. Starting with certain given values of predictors (sex, income, education) and following the tree you end up with a predicted outcome (in this case diabetes). Sometimes we try to use classification trees because they can easy to interpret and can pick up on interactions between the predictors!  We will see if this is a better model than our LR model 1 with sex, income and education as predictors! 
+
 ```{r}
 #tree recipe 
 tree_rec <- recipe(Diabetes_binary ~ Sex + Income + Education, data = train) %>%
@@ -195,10 +197,11 @@ tree_last <- last_fit(
 tree_last %>% collect_metrics()
 
 ```
-With these results, it looks our accuracy remains similar to our best LR model; however, the log-loss is higher (0.4033) than the best LR model.  We would not choose this model over the LR model 1 as it would give more confident predictions. 
-
+With these results, it looks our accuracy remains similar to our best LR model; however, the log-loss is higher (0.4033) than the best LR model.  We would not choose this model over the LR model 1 because the LR model would still perform better. 
 
 ## Random Forest
+
+A random forest uses the same concept as a classification tree except it's a method where many classification trees are made by using random subsets of the data and the predictors, then it aggregates the predictions.  Random forest will usually have better accuracy because of the repetition, whereas a single classification tree is more likely to be less accurate and over-fit.  Here we will compare our random forest results to that of the LR model 1 to see if it's better at predicting the outcomes of diabetes, using sex, income and education as predictors!
 
 ```{r}
 #random forest spec
@@ -258,7 +261,7 @@ tree_last %>% collect_metrics()
 rf_final_fit %>% collect_metrics()
 
 ```
-
+Looking at the accuracy and log-loss of the Random Forest model compared to the LR Model 1, the LR Model 1 still has a similar accuracy and lower log-loss, so we will use this model as the best predictor. 
 
 ```{r}
 #refit model without metrics for API
